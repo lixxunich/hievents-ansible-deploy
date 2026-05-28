@@ -47,10 +47,33 @@
   register: hievents_db_user
   changed_when: false
 
+- name: Read DB password from backend .env
+  shell: "grep '^DB_PASSWORD=' /opt/hievents/backend/.env | cut -d= -f2-"
+  register: hievents_db_password
+  changed_when: false
+
+- name: Ensure PostgreSQL role exists with correct password
+  become: yes
+  become_user: postgres
+  shell: |
+    psql -tc "SELECT 1 FROM pg_roles WHERE rolname = '{{ hievents_db_user.stdout }}'" | grep -q 1 \
+    && psql -c "ALTER ROLE \"{{ hievents_db_user.stdout }}\" WITH LOGIN PASSWORD '{{ hievents_db_password.stdout }}';" \
+    || psql -c "CREATE ROLE \"{{ hievents_db_user.stdout }}\" WITH LOGIN PASSWORD '{{ hievents_db_password.stdout }}';"
+  changed_when: false
+
+- name: Ensure Hi.Events database exists
+  become: yes
+  become_user: postgres
+  shell: |
+    psql -tc "SELECT 1 FROM pg_database WHERE datname = '{{ hievents_db_name.stdout }}'" | grep -q 1 \
+    || createdb -O "{{ hievents_db_user.stdout }}" "{{ hievents_db_name.stdout }}"
+  changed_when: false
+
 - name: Grant schema privileges and enable pg_trgm
   become: yes
   become_user: postgres
   shell: |
+    psql -d "{{ hievents_db_name.stdout }}" -c "GRANT ALL PRIVILEGES ON DATABASE \"{{ hievents_db_name.stdout }}\" TO \"{{ hievents_db_user.stdout }}\";"
     psql -d "{{ hievents_db_name.stdout }}" -c "GRANT ALL PRIVILEGES ON SCHEMA public TO \"{{ hievents_db_user.stdout }}\";"
     psql -d "{{ hievents_db_name.stdout }}" -c "GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO \"{{ hievents_db_user.stdout }}\";"
     psql -d "{{ hievents_db_name.stdout }}" -c "GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO \"{{ hievents_db_user.stdout }}\";"
@@ -79,7 +102,19 @@
   args:
     chdir: /opt/hievents/backend
 
+- name: Clear Laravel config cache
+  command: php artisan config:clear
+  args:
+    chdir: /opt/hievents/backend
+  failed_when: false
+
 - name: Run database migrations
   command: php artisan migrate --force
   args:
     chdir: /opt/hievents/backend
+
+- name: Create storage symlink
+  command: php artisan storage:link
+  args:
+    chdir: /opt/hievents/backend
+  failed_when: false
