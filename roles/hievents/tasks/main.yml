@@ -22,13 +22,34 @@
     owner: "{{ ansible_user | default('artem.kireev') }}"
     group: "{{ ansible_user | default('artem.kireev') }}"
 
-- name: Create .env file from template
+- name: Create backend .env file from template
   template:
     src: env.j2
-    dest: /opt/hievents/.env
+    dest: /opt/hievents/backend/.env
     owner: "{{ ansible_user | default('artem.kireev') }}"
     group: "{{ ansible_user | default('artem.kireev') }}"
     mode: '0644'
+
+- name: Read DB name from backend .env
+  shell: "grep '^DB_DATABASE=' /opt/hievents/backend/.env | cut -d= -f2-"
+  register: hievents_db_name
+  changed_when: false
+
+- name: Read DB user from backend .env
+  shell: "grep '^DB_USERNAME=' /opt/hievents/backend/.env | cut -d= -f2-"
+  register: hievents_db_user
+  changed_when: false
+
+- name: Grant schema privileges to Hi.Events DB user
+  become: yes
+  become_user: postgres
+  shell: |
+    psql -d "{{ hievents_db_name.stdout }}" -c "GRANT ALL PRIVILEGES ON SCHEMA public TO \"{{ hievents_db_user.stdout }}\";"
+    psql -d "{{ hievents_db_name.stdout }}" -c "GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO \"{{ hievents_db_user.stdout }}\";"
+    psql -d "{{ hievents_db_name.stdout }}" -c "GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO \"{{ hievents_db_user.stdout }}\";"
+    psql -d "{{ hievents_db_name.stdout }}" -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO \"{{ hievents_db_user.stdout }}\";"
+    psql -d "{{ hievents_db_name.stdout }}" -c "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO \"{{ hievents_db_user.stdout }}\";"
+  changed_when: false
 
 - name: Install backend dependencies with Composer
   command: composer install --no-interaction --prefer-dist --optimize-autoloader
