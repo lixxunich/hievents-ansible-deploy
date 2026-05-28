@@ -1,28 +1,56 @@
 ---
-- name: Create application directory
+- name: Ensure application directory exists
   file:
     path: /opt/hievents
     state: directory
-    owner: artem.kireev
-    group: artem.kireev
+    owner: "{{ ansible_user | default('artem.kireev') }}"
+    group: "{{ ansible_user | default('artem.kireev') }}"
     mode: '0755'
 
 - name: Clone Hi.Events repository
   git:
-    repo: https://github.com/your-org/hievents.git
+    repo: https://github.com/HiEventsDev/Hi.Events.git
     dest: /opt/hievents
     version: main
-    update: yes
+    force: yes
 
-- name: Copy application environment file
+- name: Set ownership for application directory
+  file:
+    path: /opt/hievents
+    state: directory
+    recurse: yes
+    owner: "{{ ansible_user | default('artem.kireev') }}"
+    group: "{{ ansible_user | default('artem.kireev') }}"
+
+- name: Create .env file from template
   template:
     src: env.j2
     dest: /opt/hievents/.env
-    owner: artem.kireev
-    group: artem.kireev
+    owner: "{{ ansible_user | default('artem.kireev') }}"
+    group: "{{ ansible_user | default('artem.kireev') }}"
     mode: '0644'
 
-- name: Install application dependencies
-  command: composer install --no-interaction --no-dev
+- name: Install backend dependencies with Composer
+  command: composer install --no-interaction --prefer-dist --optimize-autoloader
   args:
-    chdir: /opt/hievents
+    chdir: /opt/hievents/backend
+
+- name: Install frontend dependencies with npm
+  command: npm install
+  args:
+    chdir: /opt/hievents/frontend
+
+- name: Build frontend assets
+  command: npm run build
+  args:
+    chdir: /opt/hievents/frontend
+
+- name: Generate application key
+  command: php artisan key:generate --force
+  args:
+    chdir: /opt/hievents/backend
+
+- name: Run database migrations
+  command: php artisan migrate --force
+  args:
+    chdir: /opt/hievents/backend
