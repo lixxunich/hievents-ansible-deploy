@@ -7,6 +7,13 @@
     group: "{{ ansible_user | default('artem.kireev') }}"
     mode: '0755'
 
+- name: Install python3-apt with raw
+  become: yes
+  raw: |
+    apt-get update
+    apt-get install -y python3-apt
+  changed_when: false
+
 - name: Install PostgreSQL contrib package
   become: yes
   apt:
@@ -47,7 +54,7 @@
   register: hievents_db_user
   changed_when: false
 
-- name: Grant schema privileges to Hi.Events DB user
+- name: Grant schema privileges and enable pg_trgm
   become: yes
   become_user: postgres
   shell: |
@@ -83,3 +90,9 @@
   command: php artisan migrate --force
   args:
     chdir: /opt/hievents/backend
+
+- name: Create storage symlink
+  command: php artisan storage:link
+  args:
+    chdir: /opt/hievents/backend
+  failed_when: false
