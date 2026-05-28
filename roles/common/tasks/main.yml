@@ -1,0 +1,17 @@
+---
+- name: Install base packages
+  dnf:
+    name:
+      - curl
+      - git
+      - unzip
+      - tar
+    state: present
+
+- name: Create application directory
+  file:
+    path: /opt/hievents
+    state: directory
+    owner: artem.kireev
+    group: artem.kireev
+    mode: '0755'

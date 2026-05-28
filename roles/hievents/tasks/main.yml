@@ -1,0 +1,28 @@
+---
+- name: Create application directory
+  file:
+    path: /opt/hievents
+    state: directory
+    owner: artem.kireev
+    group: artem.kireev
+    mode: '0755'
+
+- name: Clone Hi.Events repository
+  git:
+    repo: https://github.com/your-org/hievents.git
+    dest: /opt/hievents
+    version: main
+    update: yes
+
+- name: Copy application environment file
+  template:
+    src: env.j2
+    dest: /opt/hievents/.env
+    owner: artem.kireev
+    group: artem.kireev
+    mode: '0644'
+
+- name: Install application dependencies
+  command: composer install --no-interaction --no-dev
+  args:
+    chdir: /opt/hievents

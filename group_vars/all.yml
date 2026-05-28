@@ -1,0 +1,41 @@
+project_name: hi-events-course
+app_base_dir: /opt/hi-events
+app_repo: "https://github.com/HiEventsDev/hi.events.git"
+app_branch: develop
+
+db_name: hi_events
+db_user: hi_events_user
+db_password: "StrongPassword123!"
+
+domain_name: localhost
+backend_url: "http://127.0.0.1:8000"
+frontend_url: "http://127.0.0.1:5678"
+
+php_packages:
+  - php
+  - php-cli
+  - php-fpm
+  - php-common
+  - php-pgsql
+  - php-gd
+  - php-intl
+  - php-mbstring
+  - php-xml
+  - php-zip
+  - php-bcmath
+  - php-curl
+  - php-sodium
+  - composer
+
+base_packages:
+  - git
+  - curl
+  - unzip
+  - tar
+  - nginx
+  - postgresql
+  - postgresql-server
+  - postgresql-contrib
+  - python3-psycopg2
+  - nodejs
+  - yarnpkg

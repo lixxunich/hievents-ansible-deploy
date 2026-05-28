@@ -1,0 +1,22 @@
+---
+- name: Install PHP, Composer and extensions
+  dnf:
+    name:
+      - php
+      - php-cli
+      - php-fpm
+      - php-pgsql
+      - php-mbstring
+      - php-xml
+      - php-curl
+      - php-zip
+      - php-intl
+      - php-bcmath
+      - composer
+    state: present
+
+- name: Start and enable php-fpm service
+  systemd:
+    name: php-fpm
+    state: started
+    enabled: true

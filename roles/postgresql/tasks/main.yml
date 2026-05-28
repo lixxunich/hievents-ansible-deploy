@@ -1,0 +1,32 @@
+---
+- name: Install PostgreSQL server and client
+  dnf:
+    name:
+      - postgresql-server
+      - postgresql
+      - python3-psycopg2
+    state: present
+
+- name: Initialize PostgreSQL database
+  command: postgresql-setup --initdb
+  args:
+    creates: /var/lib/pgsql/data/PG_VERSION
+
+- name: Enable and start PostgreSQL service
+  systemd:
+    name: postgresql
+    state: started
+    enabled: true
+
+- name: Create application database
+  become_user: postgres
+  postgresql_db:
+    name: hievents
+
+- name: Create application database user
+  become_user: postgres
+  postgresql_user:
+    name: hievents_user
+    password: hievents_password
+    db: hievents
+    priv: "ALL"
